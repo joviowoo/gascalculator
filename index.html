@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8">
+    <!-- 上面一行是标准写法，下面一行是针对旧IE的强声明 -->
+    <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>燃气经济性对比计算器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入外部CSS文件 -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-fire"></i> 燃气经济性对比计算器</h1>
+            <p>输入液化石油气用量，自动计算并对比液化石油气与管道天然气的使用成本</p>
+        </div>
+        
+        <div class="calculator-grid">
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-gas-pump"></i> 液化石油气 (LPG)
+                </div>
+                
+                <div class="input-group">
+                    <label for="lpgAmount"><i class="fas fa-weight"></i> 液化石油气用量</label>
+                    <input type="number" id="lpgAmount" placeholder="请输入每月使用量（KG）" min="0" step="0.1">
+                    <div class="formula-note">计算基准：按每KG液化石油气单价计算</div>
+                </div>
+                
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div class="result-label">液化石油气用量</div>
+                        <div class="result-value"><span id="lpgAmountResult">0</span><span class="result-unit">KG/月</span></div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">液化石油气气费</div>
+                        <div class="result-value">￥<span id="lpgCostResult">0.00</span><span class="result-unit">元/月</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-pipe"></i> 管道天然气 (NG)
+                </div>
+                
+                <div class="input-group">
+                    <label><i class="fas fa-exchange-alt"></i> 由液化石油气用量换算</label>
+                    <input type="text" value="由输入LPG用量自动计算" disabled style="background: rgba(30, 60, 90, 0.7);">
+                    <div class="formula-note">换算关系：1KG液化气 ≈ 1.28m³天然气</div>
+                </div>
+                
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div class="result-label">管道天然气用量</div>
+                        <div class="result-value"><span id="ngAmountResult">0</span><span class="result-unit">m³/月</span></div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">管道天然气气费</div>
+                        <div class="result-value">￥<span id="ngCostResult">0.00</span><span class="result-unit">元/月</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="savings-card">
+            <div class="savings-title">
+                <i class="fas fa-piggy-bank"></i> 改用管道天然气预计节省
+            </div>
+            <div class="savings-value">￥<span id="savingsResult">0.00</span><span class="result-unit">元/月</span></div>
+            <div style="text-align: center; color: #b0ffc8;">
+                <i class="fas fa-lightbulb"></i> 每月节省 <span class="highlight" id="savingsPercent">0</span>%，长期使用经济效益显著
+            </div>
+        </div>
+        
+        <div class="notes">
+            <div class="notes-title">
+                <i class="fas fa-sticky-note"></i> 计算说明与备注
+            </div>
+            <ul class="notes-list">
+                <li>
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <span class="highlight">液化石油气价格基准</span>：14.5kg/瓶 ≈ 120元，折合单价 <span class="highlight">8.27元/KG</span>
+                    </div>
+                </li>
+                <li>
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <span class="highlight">管道天然气价格</span>：统一按 <span class="highlight">4.55元/m³</span> 计算
+                    </div>
+                </li>
+                <li>
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <span class="highlight">热值换算比例</span>：1KG液化石油气 ≈ <span class="highlight">1.28m³</span> 管道天然气
+                    </div>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <p>@ 2025 燃气经济性计算工具 | 数据仅供参考，实际价格以当地供应商为准</p>
+            <p style="margin-top: 5px; font-size: 0.8rem; color: #6ca8dd;">
+                <i class="fas fa-sync-alt"></i> 数据实时计算 | <i class="fas fa-mobile-alt"></i> 移动端适配 | <i class="fas fa-qrcode"></i> 支持二维码分享
+            </p>
+        </div>
+    </div>
+
+    <!-- 引入外部JavaScript文件 -->
+    <script src="script.js"></script>
+</body>
+</html>
