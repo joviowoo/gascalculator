@@ -6,15 +6,281 @@
     <!-- 上面一行是标准写法，下面一行是针对旧IE的强声明 -->
     <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><![endif]-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>燃气经济性对比计算器</title>
+    <title>燃气经济性对比计算</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 引入外部CSS文件 -->
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a1a2d 0%, #1a3a5f 100%);
+            color: #e0f7ff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(10, 30, 50, 0.85);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 50, 100, 0.5);
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            margin-top: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(64, 156, 255, 0.5);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4facfe 0%, #00b3ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header p {
+            color: #a0d2ff;
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(15, 40, 70, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 30, 60, 0.3);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(64, 156, 255, 0.6);
+            box-shadow: 0 12px 25px rgba(0, 40, 80, 0.4);
+        }
+        
+        .card-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(64, 156, 255, 0.4);
+        }
+        
+        .card-title i {
+            margin-right: 12px;
+            color: #4facfe;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            color: #b0e1ff;
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(5, 20, 40, 0.7);
+            border: 2px solid rgba(64, 156, 255, 0.4);
+            border-radius: 10px;
+            color: #e0f7ff;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.2);
+        }
+        
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .result-item {
+            background: rgba(5, 25, 50, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #4facfe;
+        }
+        
+        .result-label {
+            font-size: 0.9rem;
+            color: #8cc8ff;
+            margin-bottom: 5px;
+        }
+        
+        .result-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #4facfe;
+        }
+        
+        .result-unit {
+            font-size: 0.9rem;
+            color: #8cc8ff;
+            margin-left: 3px;
+        }
+        
+        .savings-card {
+            background: rgba(20, 60, 100, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(100, 255, 150, 0.3);
+            margin-bottom: 30px;
+            box-shadow: 0 8px 20px rgba(0, 40, 20, 0.3);
+        }
+        
+        .savings-title {
+            color: #64ff96;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .savings-title i {
+            margin-right: 12px;
+        }
+        
+        .savings-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            text-align: center;
+            margin: 20px 0;
+            color: #64ff96;
+            text-shadow: 0 0 10px rgba(100, 255, 150, 0.5);
+        }
+        
+        .notes {
+            background: rgba(10, 30, 50, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 200, 80, 0.3);
+            box-shadow: 0 8px 20px rgba(60, 40, 0, 0.3);
+        }
+        
+        .notes-title {
+            color: #ffc850;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .notes-title i {
+            margin-right: 12px;
+        }
+        
+        .notes-list {
+            list-style-type: none;
+        }
+        
+        .notes-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 200, 80, 0.2);
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .notes-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .notes-list i {
+            color: #ffc850;
+            margin-right: 12px;
+            margin-top: 3px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #8cc8ff;
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 1px solid rgba(64, 156, 255, 0.3);
+            width: 100%;
+        }
+        
+        @media (max-width: 768px) {
+            .calculator-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .savings-value {
+                font-size: 2rem;
+            }
+        }
+        
+        .highlight {
+            color: #ffc850;
+            font-weight: 600;
+        }
+        
+        .formula-note {
+            font-size: 0.9rem;
+            color: #8cc8ff;
+            margin-top: 8px;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-fire"></i> 燃气经济性对比计算器</h1>
+            <h1><i class="fas fa-fire"></i> 燃气经济性对比计算</h1>
             <p>输入液化石油气用量，自动计算并对比液化石油气与管道天然气的使用成本</p>
         </div>
         
@@ -110,7 +376,127 @@
         </div>
     </div>
 
-    <!-- 引入外部JavaScript文件 -->
-    <script src="script.js"></script>
+    <script>
+        // 获取输入元素和结果元素
+        const lpgAmountInput = document.getElementById('lpgAmount');
+        const lpgAmountResult = document.getElementById('lpgAmountResult');
+        const lpgCostResult = document.getElementById('lpgCostResult');
+        const ngAmountResult = document.getElementById('ngAmountResult');
+        const ngCostResult = document.getElementById('ngCostResult');
+        const savingsResult = document.getElementById('savingsResult');
+        const savingsPercent = document.getElementById('savingsPercent');
+        
+        // 计算常数
+        const LPG_PRICE_PER_KG = 8.27; // 液化石油气单价：元/KG
+        const NG_PRICE_PER_CUBIC = 4.55; // 管道天然气单价：元/m³
+        const CONVERSION_RATE = 1.28; // 1KG液化石油气 ≈ 1.28m3天然气
+        
+        // 格式化数字，保留两位小数
+        function formatNumber(num) {
+            return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+        
+        // 计算并更新所有结果
+        function calculateResults() {
+            // 获取输入值，如果为空或无效则设为0
+            const lpgAmount = parseFloat(lpgAmountInput.value) || 0;
+            
+            // 液化石油气计算结果
+            const lpgCost = lpgAmount * LPG_PRICE_PER_KG;
+            
+            // 管道天然气计算结果
+            const ngAmount = lpgAmount * CONVERSION_RATE;
+            const ngCost = ngAmount * NG_PRICE_PER_CUBIC;
+            
+            // 节省费用计算
+            const savings = lpgCost - ngCost;
+            const savingsPercentage = lpgCost > 0 ? ((savings / lpgCost) * 100) : 0;
+            
+            // 更新页面显示
+            lpgAmountResult.textContent = formatNumber(lpgAmount);
+            lpgCostResult.textContent = formatNumber(lpgCost);
+            ngAmountResult.textContent = formatNumber(ngAmount);
+            ngCostResult.textContent = formatNumber(ngCost);
+            savingsResult.textContent = formatNumber(savings);
+            savingsPercent.textContent = savingsPercentage.toFixed(1);
+            
+            // 根据节省费用调整颜色
+            const savingsElement = document.querySelector('.savings-value');
+            if (savings > 0) {
+                savingsElement.style.color = '#64ff96';
+                document.querySelector('.savings-card').style.borderColor = 'rgba(100, 255, 150, 0.5)';
+            } else if (savings < 0) {
+                savingsElement.style.color = '#ff6464';
+                document.querySelector('.savings-card').style.borderColor = 'rgba(255, 100, 100, 0.5)';
+            } else {
+                savingsElement.style.color = '#ffc850';
+                document.querySelector('.savings-card').style.borderColor = 'rgba(255, 200, 80, 0.5)';
+            }
+        }
+        
+        // 添加输入事件监听
+        lpgAmountInput.addEventListener('input', calculateResults);
+        
+        // 添加键盘快捷键支持
+        document.addEventListener('keydown', function(event) {
+            // Ctrl + R 重置输入
+            if (event.ctrlKey && event.key === 'r') {
+                event.preventDefault();
+                lpgAmountInput.value = '';
+                calculateResults();
+            }
+            
+            // 上/下箭头增加/减少输入值
+            if (event.target === lpgAmountInput) {
+                if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    const currentValue = parseFloat(lpgAmountInput.value) || 0;
+                    lpgAmountInput.value = currentValue + 1;
+                    calculateResults();
+                } else if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    const currentValue = parseFloat(lpgAmountInput.value) || 0;
+                    lpgAmountInput.value = Math.max(0, currentValue - 1);
+                    calculateResults();
+                }
+            }
+        });
+        
+        // 页面加载时初始化计算
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置一个示例初始值，方便演示
+            lpgAmountInput.value = '0';
+            calculateResults();
+            
+            // 添加输入框焦点效果
+            lpgAmountInput.addEventListener('focus', function() {
+                this.select();
+            });
+        });
+        
+        // 添加移动端触摸支持
+        let touchStartY = 0;
+        lpgAmountInput.addEventListener('touchstart', function(event) {
+            touchStartY = event.touches[0].clientY;
+        });
+        
+        lpgAmountInput.addEventListener('touchend', function(event) {
+            const touchEndY = event.changedTouches[0].clientY;
+            const diff = touchStartY - touchEndY;
+            const currentValue = parseFloat(lpgAmountInput.value) || 0;
+            
+            // 如果上下滑动距离大于10px，则调整数值
+            if (Math.abs(diff) > 10) {
+                if (diff > 0) {
+                    // 向上滑动，增加数值
+                    lpgAmountInput.value = currentValue + 1;
+                } else {
+                    // 向下滑动，减少数值
+                    lpgAmountInput.value = Math.max(0, currentValue - 1);
+                }
+                calculateResults();
+            }
+        });
+    </script>
 </body>
 </html>
