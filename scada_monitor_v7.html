@@ -1,0 +1,499 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LNG 储配站 SCADA 监控系统 (真实警报版)</title>
+    <style>
+        :root {
+            --bg-color: #001f3f;
+            --panel-bg: rgba(0, 31, 63, 0.8);
+            --text-main: #ffffff;
+            --text-dim: #a0aec0;
+            --success: #00ff00;
+            --warning: #ffd700;
+            --danger: #ff0000;
+            --pipe-active: #00ffff;
+            --border: #2d3748;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.5s;
+        }
+
+        header {
+            height: 60px;
+            background: linear-gradient(to right, #003366, #001f3f);
+            border-bottom: 2px solid var(--success);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            z-index: 100;
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .logo-text { font-size: 24px; font-weight: bold; color: var(--success); text-shadow: 0 0 5px rgba(0, 255, 0, 0.5); }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+        
+        .operator-badge {
+            background: rgba(255,255,255,0.1);
+            padding: 5px 15px;
+            border-radius: 20px;
+            border: 1px solid var(--success);
+            font-size: 14px;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .operator-badge.alarm {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(255,0,0,0.2);
+            animation: blink-border 1s infinite;
+        }
+
+        .system-time {
+            font-family: "Courier New", monospace;
+            font-size: 20px;
+            color: var(--warning);
+            background: #000;
+            padding: 5px 10px;
+            border: 1px solid #333;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            grid-template-rows: 1fr 200px;
+            gap: 10px;
+            padding: 10px;
+            flex: 1;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid #1a365d;
+            border-radius: 4px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .panel-title {
+            font-size: 16px;
+            color: var(--success);
+            border-bottom: 1px solid #1a365d;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .tank-group { grid-row: 1 / 2; grid-column: 1 / 2; }
+        .tank-card {
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 4px solid var(--success);
+            transition: border-color 0.3s;
+        }
+        .tank-card h3 { margin: 0 0 10px 0; font-size: 16px; color: var(--text-dim); border-bottom: 1px dashed #4a5568; padding-bottom: 5px; }
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .data-label { color: var(--text-dim); }
+        .data-value { font-family: "Courier New", monospace; font-weight: bold; color: var(--success); transition: color 0.3s; }
+
+        .process-view {
+            grid-row: 1 / 2; grid-column: 2 / 3;
+            position: relative;
+            background: radial-gradient(circle at center, #00264d 0%, #001f3f 100%);
+            border: 2px solid #1a365d;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .svg-bg { width: 100%; height: 100%; position: absolute; top: 0; left: 0; opacity: 0.3; }
+        .process-status {
+            z-index: 10;
+            text-align: center;
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--success);
+            transition: border-color 0.3s;
+        }
+        .big-status { font-size: 30px; font-weight: bold; color: var(--success); margin-bottom: 10px; transition: color 0.3s; }
+
+        .outlet-group { grid-row: 1 / 2; grid-column: 3 / 4; }
+        .kpi-box {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid transparent;
+            transition: all 0.3s;
+        }
+        .kpi-label { font-size: 14px; color: var(--text-dim); margin-bottom: 5px; }
+        .kpi-value { font-size: 32px; font-weight: bold; font-family: "Courier New", monospace; color: var(--success); transition: color 0.3s; }
+        .kpi-unit { font-size: 14px; color: var(--text-dim); }
+
+        .bottom-panel { grid-row: 2 / 3; grid-column: 1 / 4; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .log-box {
+            background: #000; color: #0f0; font-family: "Courier New", monospace; font-size: 14px;
+            padding: 10px; overflow-y: auto; border: 1px solid #333; height: 100%; box-sizing: border-box;
+        }
+        .alarm-list { list-style: none; padding: 0; margin: 0; height: 100%; overflow-y: auto; }
+        .alarm-item { padding: 8px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; font-size: 14px; }
+        .alarm-crit { color: var(--danger); font-weight: bold; }
+        .alarm-warn { color: var(--warning); }
+        .alarm-info { color: var(--success); }
+
+        /* 报警状态样式 */
+        body.alarm-mode { background-color: #1a0505; }
+        body.alarm-mode header { border-bottom-color: var(--danger); background: linear-gradient(to right, #660000, #001f3f); }
+        body.alarm-mode .data-value.critical, body.alarm-mode .kpi-value.critical { color: var(--danger); animation: blink-text 1s infinite; }
+        body.alarm-mode .kpi-box.critical-border { border-color: var(--danger); background: rgba(255, 0, 0, 0.15); box-shadow: 0 0 15px rgba(255,0,0,0.3); }
+        body.alarm-mode .big-status { color: var(--danger); animation: blink-text 0.5s infinite; }
+        body.alarm-mode .process-status { border-color: var(--danger); }
+        body.alarm-mode .tank-card { border-left-color: var(--danger); }
+
+        @keyframes blink-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes blink-border { 0%, 100% { border-color: var(--danger); } 50% { border-color: transparent; } }
+
+        #popup-alert {
+            display: none;
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(100, 0, 0, 0.95); color: white; padding: 40px;
+            border-radius: 10px; text-align: center; z-index: 9999;
+            box-shadow: 0 0 50px rgba(255,0,0,0.8); border: 4px solid var(--danger);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+
+        #control-bar {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85); padding: 10px 20px; border-radius: 50px;
+            border: 1px solid #444; display: flex; gap: 15px; z-index: 10000;
+            backdrop-filter: blur(5px); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .ctrl-btn {
+            padding: 10px 20px; border: none; border-radius: 25px; font-size: 14px;
+            font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            transition: transform 0.2s, box-shadow 0.2s; color: white;
+        }
+        .ctrl-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .btn-alarm { background: linear-gradient(135deg, #dc3545, #a71d2a); box-shadow: 0 0 10px rgba(220, 53, 69, 0.4); }
+        .btn-normal { background: linear-gradient(135deg, #28a745, #1e7e34); box-shadow: 0 0 10px rgba(40, 167, 69, 0.4); }
+        .ctrl-label { font-size: 12px; color: #aaa; align-self: center; margin: 0 10px; border-left: 1px solid #555; padding-left: 10px; }
+        
+        #audio-hint {
+            position: fixed; top: 70px; right: 20px; background: rgba(255, 255, 0, 0.2);
+            border: 1px solid var(--warning); color: var(--warning); padding: 5px 10px;
+            border-radius: 5px; font-size: 12px; display: none; z-index: 999;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="audio-hint">🔊 请点击页面任意位置以启用真实警报声音</div>
+
+    <header>
+        <div class="logo-area">
+            <div style="font-size:30px;">🏭</div>
+            <div>
+                <div class="logo-text">LNG 储配站 SCADA 系统</div>
+                <div style="font-size:12px; color:#aaa;">安森智能监控平台 V2.6</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="operator-badge" id="operator-badge">
+                👤 当前操作员：<span id="operator-name">站长</span>
+            </div>
+            <div class="system-time" id="clock">10:39:32</div>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <!-- 左侧 -->
+        <div class="panel tank-group">
+            <div class="panel-title"><span>📦 储罐区参数</span><span>实时</span></div>
+            <div class="tank-card">
+                <h3>LNG 储罐 A (TK-101)</h3>
+                <div class="data-row"><span class="data-label">液位:</span><span class="data-value" id="tank-a-level">639.6 <span style="font-size:12px">mm</span></span></div>
+                <div class="data-row"><span class="data-label">压力:</span><span class="data-value" id="tank-a-pressure">235.3 <span style="font-size:12px">Kpa</span></span></div>
+                <div class="data-row"><span class="data-label">温度:</span><span class="data-value" id="tank-a-temp">-161.5 <span style="font-size:12px">°C</span></span></div>
+            </div>
+            <div class="tank-card">
+                <h3>LNG 储罐 B (TK-102)</h3>
+                <div class="data-row"><span class="data-label">液位:</span><span class="data-value" id="tank-b-level">649.0 <span style="font-size:12px">mm</span></span></div>
+                <div class="data-row"><span class="data-label">压力:</span><span class="data-value" id="tank-b-pressure">240.2 <span style="font-size:12px">Kpa</span></span></div>
+                <div class="data-row"><span class="data-label">温度:</span><span class="data-value" id="tank-b-temp">-161.2 <span style="font-size:12px">°C</span></span></div>
+            </div>
+        </div>
+
+        <!-- 中间 -->
+        <div class="process-view">
+            <svg class="svg-bg" viewBox="0 0 800 600" preserveAspectRatio="none">
+                <path d="M100,300 L300,300 L300,150 L500,150 L500,300 L700,300" stroke="#00ffff" stroke-width="4" fill="none" opacity="0.5"/>
+                <circle cx="300" cy="300" r="10" fill="#00ffff"/>
+                <circle cx="500" cy="300" r="10" fill="#00ffff"/>
+                <rect x="250" y="100" width="300" height="100" rx="20" fill="rgba(0,255,255,0.1)" stroke="#00ffff" stroke-width="2"/>
+                <text x="400" y="155" text-anchor="middle" fill="#00ffff" font-size="20">调压计量撬</text>
+            </svg>
+            <div class="process-status">
+                <div class="big-status" id="sys-big-status">系统运行正常</div>
+                <div style="color:#aaa;">当前工况：外输供气</div>
+                <div style="margin-top:10px; font-size:12px; color:#666;">通讯状态：<span id="comm-status" style="color:var(--success)">在线</span></div>
+            </div>
+        </div>
+
+        <!-- 右侧 -->
+        <div class="panel outlet-group">
+            <div class="panel-title"><span>🚀 出站关键参数</span><span>监控重点</span></div>
+            <div class="kpi-box" id="box-out-pressure">
+                <div class="kpi-label">出站调压后压力</div>
+                <div class="kpi-value" id="val-out-pressure">239.3 <span class="kpi-unit">Kpa</span></div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-label">出站瞬时流量</div>
+                <div class="kpi-value" id="val-out-flow">635.8 <span class="kpi-unit">Nm³/h</span></div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-label">出站累计流量</div>
+                <div class="kpi-value" style="font-size:24px;" id="val-total-flow">148.2 <span class="kpi-unit">万 Nm³</span></div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-label">出站温度</div>
+                <div class="kpi-value" id="val-out-temp">7.8 <span class="kpi-unit">°C</span></div>
+            </div>
+        </div>
+
+        <!-- 底部 -->
+        <div class="bottom-panel">
+            <div class="panel">
+                <div class="panel-title">📝 系统操作日志</div>
+                <div class="log-box" id="sys-log">
+                    > [10:30:00] 系统启动完成<br>
+                    > [10:30:05] PLC 通讯连接成功<br>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title" style="color:var(--warning);">⚠️ 实时报警列表</div>
+                <ul class="alarm-list" id="alarm-list">
+                    <li class="alarm-item"><span>10:30:00</span> <span class="alarm-info">系统自检通过</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-alert">
+        <h1 style="margin:0; font-size:40px;">⚠️ 严重工艺报警 ⚠️</h1>
+        <p style="font-size:24px; margin:20px 0;">出站压力过低！<br>数据异常！</p>
+        <p style="color:#ffaaaa;">请立即执行应急预案！</p>
+    </div>
+
+    <div id="control-bar">
+        <button class="ctrl-btn btn-alarm" onclick="triggerAlarm()">
+            🔴 模拟故障 (播放真实警报)
+        </button>
+        <span class="ctrl-label">演练控制</span>
+        <button class="ctrl-btn btn-normal" onclick="restoreNormal()">
+            🟢 模拟恢复 (停止警报)
+        </button>
+    </div>
+
+    <!-- 
+      核心修改：使用 HTML5 Audio 标签加载真实 MP3 
+      这里使用了一个公开的工业警报音效链接。
+      如果链接失效，您可以将 src 替换为您本地的 mp3 文件路径，例如：src="./alarm.mp3"
+    -->
+    <audio id="real-alarm-audio" loop preload="auto">
+        <source src="C:\Users\Administrator\Downloads\xm3381.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <script>
+        const CONFIG = {
+            outPressureNormal: 239.3,
+            outFlowNormal: 635.8,
+            operatorName: "站长"
+        };
+        document.getElementById('operator-name').innerText = CONFIG.operatorName;
+
+        let isAlarm = false;
+        let audioEl = document.getElementById('real-alarm-audio');
+        let isAudioInitialized = false;
+
+        const els = {
+            outPressure: document.getElementById('val-out-pressure'),
+            outFlow: document.getElementById('val-out-flow'),
+            boxOutPressure: document.getElementById('box-out-pressure'),
+            sysBigStatus: document.getElementById('sys-big-status'),
+            commStatus: document.getElementById('comm-status'),
+            popup: document.getElementById('popup-alert'),
+            log: document.getElementById('sys-log'),
+            alarmList: document.getElementById('alarm-list'),
+            clock: document.getElementById('clock'),
+            operatorBadge: document.getElementById('operator-badge'),
+            audioHint: document.getElementById('audio-hint')
+        };
+
+        // 初始化音频 (必须在用户交互后)
+        function initAudio() {
+            if (isAudioInitialized) return;
+            // 尝试加载音频
+            audioEl.load();
+            isAudioInitialized = true;
+            els.audioHint.style.display = 'none';
+            console.log("✅ 真实警报音频已就绪");
+        }
+
+        function startRealAlarmSound() {
+            if (!isAudioInitialized) {
+                initAudio();
+                // 如果还没准备好，稍后重试
+                setTimeout(startRealAlarmSound, 500);
+                return;
+            }
+
+            // 播放真实录音
+            audioEl.currentTime = 0;
+            audioEl.volume = 1.0; // 最大音量
+            
+            const playPromise = audioEl.play();
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    console.log("🔊 真实警报播放中...");
+                }).catch(error => {
+                    console.error("❌ 自动播放被阻止或音频加载失败:", error);
+                    alert("无法播放真实警报声音。\n可能原因：\n1. 网络连接问题导致音频文件加载失败。\n2. 浏览器策略限制。\n\n建议：请先点击页面任意位置激活音频，或检查网络。");
+                });
+            }
+        }
+
+        function stopRealAlarmSound() {
+            audioEl.pause();
+            audioEl.currentTime = 0;
+            console.log("🔇 警报已停止");
+        }
+
+        function init() {
+            startClock();
+            simulateNormalFluctuation();
+            // 全局点击激活音频
+            document.body.addEventListener('click', initAudio, { once: true });
+            document.body.addEventListener('keydown', initAudio, { once: true });
+        }
+
+        function startClock() {
+            setInterval(() => {
+                const now = new Date();
+                els.clock.innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+            }, 1000);
+        }
+
+        function simulateNormalFluctuation() {
+            if (!isAlarm) {
+                const fluctuation = (Math.random() - 0.5) * 0.5;
+                updateValue(els.outPressure, (CONFIG.outPressureNormal + fluctuation).toFixed(1), 'Kpa');
+                updateValue(els.outFlow, (CONFIG.outFlowNormal + Math.random()*2).toFixed(1), 'Nm³/h');
+            }
+            requestAnimationFrame(simulateNormalFluctuation);
+        }
+
+        function updateValue(element, val, unit) {
+            element.innerHTML = `${val} <span class="kpi-unit">${unit}</span>`;
+        }
+
+        function addLog(msg) {
+            const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            els.log.innerHTML += `> [${time}] ${msg}<br>`;
+            els.log.scrollTop = els.log.scrollHeight;
+        }
+
+        function addAlarm(msg, type='crit') {
+            const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            const li = document.createElement('li');
+            li.className = 'alarm-item';
+            let colorClass = type === 'crit' ? 'alarm-crit' : 'alarm-info';
+            li.innerHTML = `<span>${time}</span> <span class="${colorClass}">${msg}</span>`;
+            els.alarmList.prepend(li);
+            if(els.alarmList.children.length > 8) els.alarmList.lastChild.remove();
+        }
+
+        // ================= 控制逻辑 =================
+
+        function triggerAlarm() {
+            initAudio(); // 确保音频引擎激活
+            if (isAlarm) return;
+            isAlarm = true;
+
+            // 视觉
+            document.body.classList.add('alarm-mode');
+            els.popup.style.display = 'block';
+            els.sysBigStatus.innerText = "⚠️ 工艺异常 ⚠️";
+            els.commStatus.innerText = "离线";
+            els.commStatus.style.color = "var(--danger)";
+            els.operatorBadge.classList.add('alarm');
+
+            // 数据
+            updateValue(els.outPressure, "12.5", 'Kpa'); 
+            els.outPressure.classList.add('critical');
+            els.boxOutPressure.classList.add('critical-border');
+            updateValue(els.outFlow, "0.0", 'Nm³/h');
+            els.outFlow.classList.add('critical');
+
+            // 声音：播放真实录音
+            startRealAlarmSound();
+
+            // 日志
+            addLog("CRITICAL: Outlet pressure low alarm!");
+            addAlarm("出站调压后压力低 (12.5 Kpa)", 'crit');
+            addAlarm("启动紧急声光报警", 'crit');
+        }
+
+        function restoreNormal() {
+            if (!isAlarm) return;
+            isAlarm = false;
+
+            // 视觉恢复
+            document.body.classList.remove('alarm-mode');
+            els.popup.style.display = 'none';
+            els.sysBigStatus.innerText = "系统运行正常";
+            els.commStatus.innerText = "在线";
+            els.commStatus.style.color = "var(--success)";
+            els.operatorBadge.classList.remove('alarm');
+
+            // 数据恢复
+            els.outPressure.classList.remove('critical');
+            els.boxOutPressure.classList.remove('critical-border');
+            els.outFlow.classList.remove('critical');
+
+            // 声音：停止录音
+            stopRealAlarmSound();
+
+            // 日志
+            addLog("SYSTEM RESTORED.");
+            addAlarm("系统恢复正常", 'info');
+        }
+
+        init();
+    </script>
+</body>
+</html>
