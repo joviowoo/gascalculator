@@ -1,0 +1,459 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天然气智能站控系统 - SCADA</title>
+    <style>
+        /* --- 基础样式 --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: #0b1120; /* 深邃工业蓝 */
+            color: #e2e8f0;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- 侧边栏 --- */
+        .sidebar {
+            width: 260px;
+            background-color: #1e293b;
+            border-right: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: bold;
+            color: #38bdf8;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }
+
+        .nav-item {
+            padding: 15px;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            color: #94a3b8;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item:hover {
+            background-color: #334155;
+            color: #fff;
+        }
+
+        .nav-item.active {
+            background-color: #0f766e; /* 工业绿 */
+            color: #fff;
+            box-shadow: 0 0 15px rgba(15, 118, 110, 0.4);
+        }
+
+        /* --- 主内容区域 --- */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        /* --- 顶部状态栏 --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #1e293b;
+            padding: 15px 25px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-badge {
+            padding: 6px 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .status-normal { background-color: #059669; color: #ecfdf5; box-shadow: 0 0 10px rgba(5, 150, 105, 0.4); }
+        .status-alarm { background-color: #dc2626; color: #fef2f2; animation: blink 1s infinite; }
+
+        @keyframes blink { 50% { opacity: 0.8; } }
+
+        /* --- 仪表盘网格 --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        /* --- 卡片通用样式 --- */
+        .card {
+            background-color: #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #334155;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 卡片左上角装饰线 */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, #38bdf8, #0f766e);
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: #94a3b8;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .kpi-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #fff;
+            font-family: 'Consolas', monospace; /* 等宽字体更像仪表 */
+        }
+        .kpi-unit { font-size: 18px; color: #64748b; margin-left: 5px; }
+
+        /* --- 模拟流程图区域 --- */
+        .process-flow {
+            grid-column: span 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 250px;
+        }
+
+        .pipe-system {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .valve {
+            width: 40px;
+            height: 40px;
+            background-color: #475569;
+            border: 2px solid #94a3b8;
+            transform: rotate(45deg);
+            position: relative;
+            z-index: 2;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .valve:hover { background-color: #64748b; }
+        .valve.open { background-color: #059669; border-color: #34d399; box-shadow: 0 0 15px #059669; }
+        .valve.closed { background-color: #dc2626; border-color: #f87171; }
+
+        .pipe {
+            height: 12px;
+            background-color: #475569;
+            flex-grow: 1;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gas-flow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 30px;
+            background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.8), transparent);
+            animation: flow 2s infinite linear;
+        }
+
+        @keyframes flow {
+            0% { transform: translateX(-50px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateX(300px); opacity: 0; }
+        }
+
+        /* --- 报警日志 --- */
+        .log-container {
+            grid-column: span 4;
+        }
+        
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .log-table th { text-align: left; color: #94a3b8; padding: 12px; border-bottom: 2px solid #334155; }
+        .log-table td { padding: 12px; border-bottom: 1px solid #334155; }
+        .level-high { color: #ef4444; font-weight: bold; }
+        .level-mid { color: #f59e0b; }
+
+        /* --- 权限拒绝弹窗样式 --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal {
+            background: #1e293b;
+            border: 1px solid #ef4444;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
+            max-width: 400px;
+        }
+        .modal-icon { font-size: 40px; margin-bottom: 15px; display: block; }
+        .modal h2 { color: #fff; margin-bottom: 10px; }
+        .modal p { color: #94a3b8; margin-bottom: 20px; }
+        .modal-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .modal-btn:hover { background: #dc2626; }
+
+    </style>
+</head>
+<body>
+
+    <!-- 侧边栏菜单 -->
+    <nav class="sidebar">
+        <div class="logo">
+            <span>🔥</span> 燃气智控云
+        </div>
+        <!-- 所有菜单项都绑定了 checkPermission 函数 -->
+        <div class="nav-item active" onclick="checkPermission(this)">📊 总览看板</div>
+        <div class="nav-item" onclick="checkPermission(this)">⚙️ 调压撬监控</div>
+        <div class="nav-item" onclick="checkPermission(this)">💧 加臭装置控制</div>
+        <div class="nav-item" onclick="checkPermission(this)">📈 流量历史曲线</div>
+        <div class="nav-item" onclick="checkPermission(this)">🔔 报警参数设置</div>
+        <div class="nav-item" onclick="checkPermission(this)">🔐 系统用户管理</div>
+    </nav>
+
+    <!-- 主界面 -->
+    <main class="main-content">
+        
+        <!-- 顶部状态 -->
+        <header class="header">
+            <div>
+                <h2>霞涌门站监控系统</h2>
+                <p style="color: #64748b; font-size: 12px;">当前工况：正常输送</p>
+            </div>
+            <div style="text-align: right;">
+                <div id="clock" style="font-size: 24px; font-weight: bold; font-family: monospace; color: #38bdf8;">00:00:00</div>
+                <div style="margin-top: 8px;">
+                    通讯状态: <span id="system-status" class="status-badge status-normal">● 在线</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 数据网格 -->
+        <div class="dashboard-grid">
+            
+            <!-- 关键参数 -->
+            <div class="card">
+                <h3>进站压力 (P-101)</h3>
+                <div class="kpi-value"><span id="in-pressure">0.00</span><span class="kpi-unit">MPa</span></div>
+            </div>
+
+            <div class="card">
+                <h3>出站压力 (P-102)</h3>
+                <div class="kpi-value"><span id="out-pressure">0.00</span><span class="kpi-unit">MPa</span></div>
+            </div>
+
+            <div class="card">
+                <h3>瞬时流量 (FT-201)</h3>
+                <div class="kpi-value"><span id="flow-rate">0</span><span class="kpi-unit">m³/h</span></div>
+            </div>
+
+            <div class="card">
+                <h3>环境温度</h3>
+                <div class="kpi-value"><span id="temp">27</span><span class="kpi-unit">°C</span></div>
+            </div>
+
+            <!-- 流程模拟 -->
+            <div class="card process-flow">
+                <h3>工艺流程实时模拟</h3>
+                <div class="pipe-system">
+                    <div class="valve open" id="valve-1" onclick="toggleValve(this)"></div>
+                    <div class="pipe"><div class="gas-flow"></div></div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 12px; color: #94a3b8;">调压路 A</div>
+                        <div style="font-weight: bold; color: #38bdf8;">RUNNING</div>
+                    </div>
+                    <div class="pipe"><div class="gas-flow"></div></div>
+                    <div class="valve open" id="valve-2" onclick="toggleValve(this)"></div>
+                </div>
+            </div>
+
+            <!-- 设备状态 -->
+            <div class="card">
+                <h3>加臭机状态</h3>
+                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                    <div style="text-align: center;">
+                        <div style="color: #64748b; font-size: 12px;">液位</div>
+                        <div style="font-size: 20px; color: #fff;">85%</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="color: #64748b; font-size: 12px;">频率</div>
+                        <div style="font-size: 20px; color: #fff;">45 Hz</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="color: #64748b; font-size: 12px;">状态</div>
+                        <div style="color: #059669; font-size: 14px; font-weight: bold;">运行中</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 报警日志 -->
+            <div class="card log-container">
+                <h3>实时报警记录</h3>
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>测点名称</th>
+                            <th>报警内容</th>
+                            <th>等级</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-body">
+                        <!-- JS 填充 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- 权限拒绝弹窗 -->
+    <div class="modal-overlay" id="permission-modal">
+        <div class="modal">
+            <span class="modal-icon">🚫</span>
+            <h2>访问被拒绝</h2>
+            <p>您当前登录的账号（操作员 A）没有权限访问此模块。<br>请联系系统管理员授权。</p>
+            <button class="modal-btn" onclick="closeModal()">我知道了</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 权限控制逻辑 ---
+        const modal = document.getElementById('permission-modal');
+
+        function checkPermission(element) {
+            // 1. 移除其他菜单的激活状态
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            // 2. 激活当前点击的菜单（视觉反馈）
+            element.classList.add('active');
+
+            // 3. 弹出权限提示
+            modal.classList.add('show');
+        }
+
+        function closeModal() {
+            modal.classList.remove('show');
+        }
+
+        // 阀门点击模拟
+        function toggleValve(element) {
+            // 这里为了演示，只弹窗，不阻止阀门动作，或者您可以选择阻止动作
+            element.classList.toggle('open');
+            element.classList.toggle('closed');
+        }
+
+        // --- 2. 实时时钟 ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- 3. 模拟天然气数据 ---
+        function simulateGasData() {
+            // 进站压力：1.5 - 2.5 MPa
+            const inP = (1.5 + Math.random()).toFixed(2);
+            document.getElementById('in-pressure').innerText = inP;
+
+            // 出站压力：0.2 - 0.4 MPa (调压后)
+            const outP = (0.2 + Math.random() * 0.2).toFixed(2);
+            document.getElementById('out-pressure').innerText = outP;
+
+            // 流量：2000 - 3000 m3/h
+            const flow = Math.floor(2000 + Math.random() * 1000);
+            document.getElementById('flow-rate').innerText = flow;
+        }
+        setInterval(simulateGasData, 2000);
+
+        // --- 4. 模拟报警日志 ---
+        const logs = [
+            { time: "09:12:05", device: "P-101", msg: "进站压力超高预警", level: "level-mid" },
+            { time: "08:30:00", device: "SYS", msg: "系统自动巡检完成", level: "" },
+            { time: "昨日 23:15", device: "M-01", msg: "加臭泵通讯中断", level: "level-high" }
+        ];
+
+        function renderLogs() {
+            const tbody = document.getElementById('log-body');
+            tbody.innerHTML = '';
+            logs.forEach(log => {
+                const row = `
+                    <tr>
+                        <td>${log.time}</td>
+                        <td>${log.device}</td>
+                        <td class="${log.level}">${log.msg}</td>
+                        <td>${log.level === 'level-high' ? '紧急' : (log.level === 'level-mid' ? '预警' : '提示')}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+        renderLogs();
+
+    </script>
+</body>
+</html>
